@@ -1,0 +1,3 @@
+What is the average number of transactions per month for customers with a money_market account, and how does this compare to customers with a checking account, segmented by branch?
+What is the correlation between a customer's age, their account balance, and the frequency with which they incur overdraft fees, and how does this vary across different account types?
+What are the top 5 most common transaction types associated with accounts that have been closed within the last year, and what is the average account balance at the time of closure for each of these transaction types?

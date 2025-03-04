@@ -1,0 +1,24 @@
+[
+  {
+    "success": true,
+    "query": "-- What is the average number of transactions per month for customers with a money_market account, and how does this compare to customers with a checking account, segmented by branch?\nSELECT\n    b.branch_name,\n    at.type_name,\n    AVG(monthly_transactions) AS avg_monthly_transactions\nFROM (\n    SELECT\n        a.account_id,\n        a.account_type_id,\n        a.branch_id,\n        EXTRACT(YEAR FROM t.transaction_date) AS transaction_year,\n        EXTRACT(MONTH FROM t.transaction_date) AS transaction_month,\n        COUNT(t.transaction_id) AS monthly_transactions\n    FROM accounts a\n    JOIN transactions t ON a.account_id = t.account_id\n    GROUP BY a.account_id, a.account_type_id, a.branch_id, EXTRACT(YEAR FROM t.transaction_date), EXTRACT(MONTH FROM t.transaction_date)\n) AS subquery\nJOIN account_types at ON subquery.account_type_id = at.account_type_id\nJOIN accounts a ON subquery.account_id = a.account_id\nLEFT JOIN branches b ON a.branch_id = b.branch_id\nWHERE at.type_name IN ('money_market', 'checking')\nGROUP BY b.branch_name, at.type_name\nORDER BY b.branch_name, at.type_name;",
+    "data": {
+      "value": "[('Main Branch', 'checking', Decimal('2.0000000000000000')), ('Main Branch', 'money_market', Decimal('1.00000000000000000000'))]"
+    },
+    "error": null
+  },
+  {
+    "success": true,
+    "query": "-- What is the correlation between a customer's age, their account balance, and the frequency with which they incur overdraft fees, and how does this vary across different account types?\nWITH OverdraftCounts AS (\n    SELECT\n        a.account_id,\n        COUNT(td.fee_id) AS overdraft_count\n    FROM accounts a\n    JOIN transactions t ON a.account_id = t.account_id\n    LEFT JOIN transaction_details td ON t.transaction_id = td.transaction_id\n    LEFT JOIN account_fees af ON td.fee_id = af.account_fee_id\n    LEFT JOIN fee_types ft ON af.fee_type_id = ft.fee_type_id\n    WHERE ft.fee_name = 'overdraft'\n    GROUP BY a.account_id\n),\nUserAges AS (\n    SELECT\n        user_id,\n        EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) AS age\n    FROM users\n)\nSELECT\n    at.type_name,\n    CORR(ua.age, a.balance) AS age_balance_correlation,\n    CORR(ua.age, oc.overdraft_count) AS age_overdraft_correlation,\n    CORR(a.balance, oc.overdraft_count) AS balance_overdraft_correlation\nFROM accounts a\nJOIN account_types at ON a.account_type_id = at.account_type_id\nJOIN UserAges ua ON a.user_id = ua.user_id\nLEFT JOIN OverdraftCounts oc ON a.account_id = oc.account_id\nGROUP BY at.type_name;",
+    "data": {
+      "value": "[('money_market', None, None, None), ('checking', 1.0, None, None), ('savings', None, None, None)]"
+    },
+    "error": null
+  },
+  {
+    "success": true,
+    "query": "-- What are the top 5 most common transaction types associated with accounts that have been closed within the last year, and what is the average account balance at the time of closure for each of these transaction types?\nSELECT\n    t.transaction_type,\n    AVG(t.amount) AS average_closure_balance,\n    COUNT(*) AS transaction_count\nFROM accounts a\nJOIN transactions t ON a.account_id = t.account_id\nWHERE a.closed_at >= NOW() - INTERVAL '1 year'\nGROUP BY t.transaction_type\nORDER BY transaction_count DESC\nLIMIT 5;",
+    "data": {},
+    "error": "No data returned"
+  }
+]

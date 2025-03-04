@@ -1,0 +1,63 @@
+-- What is the average number of transactions per month for customers with a money_market account, and how does this compare to customers with a checking account, segmented by branch?
+SELECT
+    b.branch_name,
+    at.type_name,
+    AVG(monthly_transactions) AS avg_monthly_transactions
+FROM (
+    SELECT
+        a.account_id,
+        a.account_type_id,
+        a.branch_id,
+        EXTRACT(YEAR FROM t.transaction_date) AS transaction_year,
+        EXTRACT(MONTH FROM t.transaction_date) AS transaction_month,
+        COUNT(t.transaction_id) AS monthly_transactions
+    FROM accounts a
+    JOIN transactions t ON a.account_id = t.account_id
+    GROUP BY a.account_id, a.account_type_id, a.branch_id, EXTRACT(YEAR FROM t.transaction_date), EXTRACT(MONTH FROM t.transaction_date)
+) AS subquery
+JOIN account_types at ON subquery.account_type_id = at.account_type_id
+JOIN accounts a ON subquery.account_id = a.account_id
+LEFT JOIN branches b ON a.branch_id = b.branch_id
+WHERE at.type_name IN ('money_market', 'checking')
+GROUP BY b.branch_name, at.type_name
+ORDER BY b.branch_name, at.type_name;
+-- What is the correlation between a customer's age, their account balance, and the frequency with which they incur overdraft fees, and how does this vary across different account types?
+WITH OverdraftCounts AS (
+    SELECT
+        a.account_id,
+        COUNT(td.fee_id) AS overdraft_count
+    FROM accounts a
+    JOIN transactions t ON a.account_id = t.account_id
+    LEFT JOIN transaction_details td ON t.transaction_id = td.transaction_id
+    LEFT JOIN account_fees af ON td.fee_id = af.account_fee_id
+    LEFT JOIN fee_types ft ON af.fee_type_id = ft.fee_type_id
+    WHERE ft.fee_name = 'overdraft'
+    GROUP BY a.account_id
+),
+UserAges AS (
+    SELECT
+        user_id,
+        EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth)) AS age
+    FROM users
+)
+SELECT
+    at.type_name,
+    CORR(ua.age, a.balance) AS age_balance_correlation,
+    CORR(ua.age, oc.overdraft_count) AS age_overdraft_correlation,
+    CORR(a.balance, oc.overdraft_count) AS balance_overdraft_correlation
+FROM accounts a
+JOIN account_types at ON a.account_type_id = at.account_type_id
+JOIN UserAges ua ON a.user_id = ua.user_id
+LEFT JOIN OverdraftCounts oc ON a.account_id = oc.account_id
+GROUP BY at.type_name;
+-- What are the top 5 most common transaction types associated with accounts that have been closed within the last year, and what is the average account balance at the time of closure for each of these transaction types?
+SELECT
+    t.transaction_type,
+    AVG(t.amount) AS average_closure_balance,
+    COUNT(*) AS transaction_count
+FROM accounts a
+JOIN transactions t ON a.account_id = t.account_id
+WHERE a.closed_at >= NOW() - INTERVAL '1 year'
+GROUP BY t.transaction_type
+ORDER BY transaction_count DESC
+LIMIT 5;

@@ -4,7 +4,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from sql_chain.sql.sql import SQLDatabaseChain
 from langchain_core.messages import HumanMessage
 from sql_chain.utils.log_setup import setup_logger
-from sql_chain.config import  Settings
+from sql_chain.config import Settings
 
 settings = Settings()
 

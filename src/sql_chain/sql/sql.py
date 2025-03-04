@@ -1,9 +1,10 @@
 from langchain_community.utilities.sql_database import SQLDatabase
 from typing import Dict, Any
 from sql_chain.models.model import QueryResult
-from sql_chain.config import  Settings
+from sql_chain.config import Settings
 
 settings = Settings()
+
 
 class SQLDatabaseChain:
     def __init__(self):

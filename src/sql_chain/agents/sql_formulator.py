@@ -4,7 +4,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from sql_chain.models.model import Queries
 from sql_chain.utils.log_setup import setup_logger
-from sql_chain.config import  Settings
+from sql_chain.config import Settings
 
 settings = Settings()
 

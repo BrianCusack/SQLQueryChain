@@ -4,6 +4,7 @@ from sql_chain.config import Settings
 
 settings = Settings()
 
+
 def init_database():
     """Initialize the banking database using langchain SQLDatabase."""
     try:
@@ -38,6 +39,7 @@ def init_database():
     except Exception as e:
         print(f"Error initializing database: {str(e)}")
         raise
+
 
 if __name__ == "__main__":
     init_database()

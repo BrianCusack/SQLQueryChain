@@ -1,12 +1,16 @@
 # SQL Query Chain builder 
 
-## Test operation for building  and testing SQL Queries derived from natural language queries
+## LangGraph operation for building and testing SQL Queries derived from natural language queries
 
 1. Creates 3x complex questions based on the database schema
 
-2. Generates quiries based on the questions 
+2. Generates quieries based on the questions 
 
-3. Executes the SQL queru and outputes the result to json
+3. Executes the SQL quieries and outputes the result to json
+
+## TODO:
+- Evaluate the response 
+- Model testing
 
 ## Resources 
 

@@ -15,7 +15,7 @@ class MockDatabase:
 class TestQueryExecutor:
     @pytest.fixture
     async def query_executor(self):
-        from sql_chain.agents.query_executor import execute_query
+        from sql_chain.agents.query_evaluator import execute_query
 
         return execute_query
 

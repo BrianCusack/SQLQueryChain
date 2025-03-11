@@ -17,3 +17,7 @@
 Pydantic structured output
 Gemini Models chat
 SQLDatabase from Langchain community
+
+## Sequence
+
+![Agent Sequence](src/sql_chain/assets/sequence.jpg)

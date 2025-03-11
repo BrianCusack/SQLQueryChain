@@ -12,22 +12,23 @@ from sql_chain.utils.log_setup import setup_logger
 logger = setup_logger(__name__)
 settings = Settings()
 
+
 async def execute_query(state: Dict[str, Any]) -> Dict[str, Any]:
     result_state = {**state}
     logger.info("Evaluting query results")
-    
+
     # Extract previous query results
     query_results = result_state.get("results", {})
     schema = result_state.get("schema", "")
-    
+
     # Initialize the database chain
     db_chain = SQLDatabase.from_uri(settings.DATABASE_URL)
-    
+
     # Set up the LLM for generating validation queries
     llm = ChatGoogleGenerativeAI(
         model=settings.GEMINI_MODEL, temperature=0.2, api_key=settings.GOOGLE_API_KEY
     )
-    
+
     # Create prompt for generating validation queries
     validation_prompt = ChatPromptTemplate.from_template("""
     You are a postgresql database expert tasked with validating SQL query results.
@@ -41,29 +42,32 @@ async def execute_query(state: Dict[str, Any]) -> Dict[str, Any]:
     Use and attach the the comments from the original query to guide your validation.
     Return only the SQL queries, one per line.
     """)
-    
+
     # Generate validation queries
     validation_chain = validation_prompt | llm
-    validation_response = await validation_chain.ainvoke({
-        "query_results": query_results,
-        "table_info": schema
-    })
-    
+    validation_response = await validation_chain.ainvoke(
+        {"query_results": query_results, "table_info": schema}
+    )
+
     # Extract validation queries from the response
-    validation_queries = [q.strip() for q in validation_response.content.split('\n') if q.strip().startswith('SELECT')]
+    validation_queries = [
+        q.strip()
+        for q in validation_response.content.split("\n")
+        if q.strip().startswith("SELECT")
+    ]
     logger.info(f"Generated {len(validation_queries)} validation queries")
-    
+
     # Execute validation queries
     validation_results = {}
     for i, query in enumerate(validation_queries):
         try:
             result = await db_chain.run(query)
-            validation_results[f"validation_{i+1}"] = result
-            logger.info(f"Executed validation query {i+1}")
+            validation_results[f"validation_{i + 1}"] = result
+            logger.info(f"Executed validation query {i + 1}")
         except Exception as e:
             logger.error(f"Error executing validation query: {e}")
-            validation_results[f"validation_{i+1}_error"] = str(e)
-    
+            validation_results[f"validation_{i + 1}_error"] = str(e)
+
     # Create prompt for evaluating results
     evaluation_prompt = ChatPromptTemplate.from_template("""
     You are a postgresql database expert tasked with evaluating query results.
@@ -85,25 +89,23 @@ async def execute_query(state: Dict[str, Any]) -> Dict[str, Any]:
     {{"score": float, "comment": "string", "validation_queries": [list_of_queries]}}
     ```
     """)
-    
+
     # Set up output parser
     parser = PydanticOutputParser(pydantic_object=QueryEvaluation)
-    
+
     # Generate evaluation
     evaluation_chain = evaluation_prompt | llm | parser
-    evaluation = await evaluation_chain.ainvoke({
-        "original_results": query_results,
-        "validation_results": validation_results
-    })
-    
+    evaluation = await evaluation_chain.ainvoke(
+        {"original_results": query_results, "validation_results": validation_results}
+    )
+
     # Update state with evaluation results
     result_state["query_evaluation"] = {
         "score": evaluation.score,
         "comment": evaluation.comment,
         "validation_queries": evaluation.validation_queries,
-        "validation_results": validation_results
+        "validation_results": validation_results,
     }
-    
+
     logger.info(f"Query evaluation complete. Score: {evaluation.score}")
     return result_state
-
